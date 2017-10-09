@@ -48,5 +48,8 @@
 			<attribute name="maven.scope" value="compile"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/home/hieu/Downloads/java-json.jar.zip"/>
+	<classpathentry kind="lib" path="/home/hieu/Downloads/java-json-schema.jar.zip"/>
+	<classpathentry kind="lib" path="/home/hieu/Downloads/json-simple-1.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
