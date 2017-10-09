@@ -33,7 +33,7 @@ import org.apache.commons.io.FilenameUtils;
 
 public class ThirdParty {
 
-	private static final String thirdParty_location = "/home/hieu/Downloads/piwigo_thirdParty/";
+	private static final String thirdParty_location = "./resource/";
 
 	private static final String key_location = thirdParty_location + "key/";
 
@@ -41,13 +41,13 @@ public class ThirdParty {
 
 	private static final String key_loc = "/var/www/html/piwigo/upload/buffer/user_key.key";
 
-	private static final String key_hom = "/home/hieu/Downloads/piwigo_thirdParty/key.txt";
+	private static final String key_hom = "./resource/key.txt";
 
 	private static final String temp_file = "/home/hieu/temp_import/";
 
-	private static final String thirdParty_metadata = "/home/hieu/Downloads/piwigo_thirdParty/Metadata/";
+	private static final String thirdParty_metadata = "./resource/Metadata/";
 
-	private static final String thirdParty_object = "/home/hieu/Downloads/piwigo_thirdParty/Object/";
+	private static final String thirdParty_object = "./resource/Object/";
 	
 	private static final String webserver = "http://localhost/piwigo/sieve.php";
 
@@ -188,6 +188,7 @@ public class ThirdParty {
 		System.out.println("Result File" + resultFile);
 		// MyJniFunc.Decrypt(fileName, key_hom, resultFile);
 		String resFile = homo_decrypt(fileName, key_hom, resultFile);
+		homo_decrypt(fileName, key_hom, resultFile);
 		return resFile;
 	}
 
@@ -234,7 +235,7 @@ public class ThirdParty {
 
 		String fileName = dis.readUTF();
 
-		byte[] buffer = new byte[65536];
+		byte[] buffer = new byte[1024];
 		FileOutputStream fos = new FileOutputStream(thirdParty_object + fileName);
 		BufferedOutputStream bos = new BufferedOutputStream(fos);
 
@@ -515,7 +516,7 @@ public class ThirdParty {
 				// TODO Auto-generated method stub
 				HttpClientExample http = new HttpClientExample();
 				try {
-					http.sendPost("");
+	//				http.sendPost("");
 					updateData(s);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -548,6 +549,7 @@ public class ThirdParty {
 		File ObjFolder = new File(thirdParty_object);
 		for(File f : ObjFolder.listFiles()){
 			f.delete();
+			System.out.println("File "+f.getName()+" is deleted!!");
 		}
 		
 		Socket sMeta;
@@ -565,13 +567,25 @@ public class ThirdParty {
 		}
 		
 		// Make request to third party update repository
-		HttpClientExample http = new HttpClientExample();
+/*		HttpClientExample http = new HttpClientExample();
 		System.out.println("\nTesting 2 - Send Http POST request");
 		try {
 			updateFile();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} */
+		HttpClientExample http = new HttpClientExample();
+		for(File f : ObjFolder.listFiles()){
+			String ext = FilenameUtils.getExtension(f.getName());
+			if(ext.contains("_enc"))
+				continue;
+			try {
+				http.uploadFileJson(f.getAbsolutePath(), "");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
