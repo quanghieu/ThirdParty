@@ -1,8 +1,8 @@
 #!/bin/bash
 
-file=$1
+file=$(pwd)/$1
 
-metadata=$2
+metadata=$(pwd)/$2
 #guid=$2
 
 cd /home/hieu/Downloads/libfenc/tools/

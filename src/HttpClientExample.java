@@ -23,8 +23,10 @@ import java.util.ArrayList;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -33,9 +35,13 @@ import org.apache.http.entity.mime.Header;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.fileupload.UploadContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -46,16 +52,22 @@ public class HttpClientExample {
 
 	public static void main(String[] args) throws Exception {
 
+//		HttpClientExample http = new HttpClientExample();
+//
+//		System.out.println("Testing 1 - Send Http GET request");
+//		http.sendGet();
+//
+//		System.out.println("\nTesting 2 - Send Http POST request");
+//		// http.uploadFile("", "");
+//		// http.sendPost("");
+//
+//		http.uploadFileJson("", "");
+		
+		System.out.println("Prepare to sign in omh");
+		signinOmh("io.smalldatalab.android.mobility", "password");
+		
 		HttpClientExample http = new HttpClientExample();
-
-		System.out.println("Testing 1 - Send Http GET request");
-		http.sendGet();
-
-		System.out.println("\nTesting 2 - Send Http POST request");
-		// http.uploadFile("", "");
-		// http.sendPost("");
-
-		http.uploadFileJson("", "");
+		http.uploadFileJson("/home/hieu/workspace/ThirdParty/resource/Object/random.json", "");
 	}
 
 	// HTTP GET request
@@ -195,29 +207,79 @@ public class HttpClientExample {
 		return new String(encoded, encoding);
 	}
 
+	
+	protected static String signinOmh(String username, String password) throws IOException {
+		String user = "";
+		String pass = "";
+		if(ThirdParty.currentUser.equals("localguy")){
+			user = "localguy";
+			pass = "password";
+		}
+		else if (ThirdParty.currentUser.equals("hieu")){
+			user = "hieu";
+			pass = "123456";
+		}
+		HttpClient client = new DefaultHttpClient();
+		String token = "";
+		String oauthURL = "http://localhost/dsu/oauth/token";
+		HttpPost post = new HttpPost(oauthURL);
+		String dsu_client_id = "io.smalldatalab.android.mobility";
+		String dsu_client_secret = "YLt2yYCtfxII164MWS1DsuGqkwnoXa9TpNUSTMhDXLLZy4VEWLf0PeULnGyrgv";
+		ArrayList<NameValuePair> postParamenters = new ArrayList<NameValuePair>();
+		postParamenters.add(new BasicNameValuePair("username", user));
+		postParamenters.add(new BasicNameValuePair("password", pass));
+		postParamenters.add(new BasicNameValuePair("grant_type", "password"));
+		
+		post.setHeader("Authorization", "Basic "+Base64.encodeBase64String((dsu_client_id +":"+dsu_client_secret).getBytes()));
+		post.setEntity(new UrlEncodedFormEntity(postParamenters, "UTF-8"));
+		
+		HttpResponse response = client.execute(post);
+		System.out.println(response);
+		String json = EntityUtils.toString(response.getEntity());
+		System.out.println("Json response "+json);
+		
+		// retrieve token
+		String[] lines = json.split(System.getProperty("line.separator"));
+		for(String s : lines) {
+			if(s.contains("access_token")){
+				String[] spl = s.split("\"");
+				System.out.println("Token is "+spl[3]);
+				token = spl[3];
+			}
+		}
+		return token;
+    }
+	
 	// Json file
 
 	public void uploadFileJson(String filePath, String serverURL) throws IOException {
 		truncatePadding(filePath);
 		
 //		String jsonContent = readFile("/home/hieu/newTest.json", Charset.defaultCharset());
-		cacheDataPointID(filePath);
+//		cacheDataPointID(filePath);
 //		System.out.println(jsonContent);
 		try (BufferedReader br = new BufferedReader(new FileReader(new File(filePath)))) {
 			String line;
-			while ((line = br.readLine()) != null) {
+			
+			line = br.readLine();
+			String[] splt = line.split("header");
+			line = "{ \"header" + splt[1];
+			
+			line.replaceFirst("_", "");
+			System.out.println("Line is "+line);
 				// process the line.
 				HttpClient client = new DefaultHttpClient();
-				String host = "192.168.99.100";
-				String port = "8083";
-				String apiVersion = "1.0.M1";
-				String postCreateDataPointAddr = "http://" + host + ":" + port + "/v" + apiVersion + "/dataPoints";
+				String host = "localhost/dsu/dataPoints";
+				String postCreateDataPointAddr = "http://" + host;
 				HttpPost post = new HttpPost(postCreateDataPointAddr);
 				String jsonContent = line;
 			//	cacheDataPointID("/home/hieu/Downloads/piwigo_thirdParty/Object/newTest2.json");
 				System.out.println(jsonContent);
 				StringEntity input = new StringEntity(jsonContent);
-				post.setHeader("Authorization", "Bearer 25172308-ea89-41f2-b59e-26b52d1f2c2c");
+				System.out.println("Prepare to get token");
+				post.setHeader("Authorization", "Bearer "+signinOmh("", ""));
+				post.setHeader("Accept", "application/json");
+				post.setHeader("Content-Type", "application/json");
 				input.setContentType("application/json");
 
 				post.setEntity(input);
@@ -225,15 +287,15 @@ public class HttpClientExample {
 				long startTime = System.nanoTime();
 				HttpResponse response = client.execute(post);
 				long elapsedTime = System.nanoTime() - startTime;
-				System.out.println("Total execution time to create 1000K objects in Java in millis: " + elapsedTime / 1000000);
-				BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-
-				String lineLog = "";
-
-				while ((lineLog = rd.readLine()) != null) {
-					System.out.println(lineLog);
-				}
-			}
+//				System.out.println("Total execution time to create 1000K objects in Java in millis: " + elapsedTime / 1000000);
+//				BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+//
+//				String lineLog = "";
+//
+//				while ((lineLog = rd.readLine()) != null) {
+//					System.out.println(lineLog);
+//				}
+				System.out.println(response);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
